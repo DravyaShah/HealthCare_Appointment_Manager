@@ -18,6 +18,14 @@ class Appointment(models.Model):
     appointment_date = models.DateTimeField()
     reason = models.TextField()
 
+    # New fields for AI summaries and Google Calendar
+    symptoms = models.TextField(blank=True)
+    urgency_level = models.CharField(max_length=20, blank=True)
+    pre_visit_summary = models.TextField(blank=True)
+    post_visit_notes = models.TextField(blank=True)
+    post_visit_summary = models.TextField(blank=True)
+    google_event_id = models.CharField(max_length=255, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

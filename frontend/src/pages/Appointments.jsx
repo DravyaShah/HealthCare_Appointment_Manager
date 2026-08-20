@@ -25,6 +25,7 @@ const Appointments = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('10:00:00');
   const [reason, setReason] = useState('');
+  const [symptoms, setSymptoms] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
@@ -60,9 +61,11 @@ const Appointments = () => {
         appointment_date: date,
         appointment_time: time,
         reason,
+        symptoms,
       });
       setShowModal(false);
       setReason('');
+      setSymptoms('');
       fetchAppointments();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to schedule appointment.');
@@ -152,6 +155,24 @@ const Appointments = () => {
                     <span>{apt.appointment_date} at {apt.appointment_time}</span>
                   </div>
                 </div>
+
+                {isDoctor && apt.pre_visit_summary && (
+                  <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <div className="flex items-center gap-1.5 mb-1 text-blue-400 font-bold text-[10px] uppercase">
+                      <Sparkles className="h-3 w-3" /> AI Pre-visit Summary
+                    </div>
+                    <p className="text-xs text-slate-300 line-clamp-3">{apt.pre_visit_summary}</p>
+                  </div>
+                )}
+                
+                {isPatient && apt.post_visit_summary && (
+                  <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                    <div className="flex items-center gap-1.5 mb-1 text-emerald-400 font-bold text-[10px] uppercase">
+                      <Sparkles className="h-3 w-3" /> AI Post-visit Summary
+                    </div>
+                    <p className="text-xs text-slate-300 line-clamp-3">{apt.post_visit_summary}</p>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
@@ -240,10 +261,21 @@ const Appointments = () => {
                   <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Reason for Consult</label>
                   <textarea
                     required
-                    rows={3}
+                    rows={2}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Describe symptoms or routine checkup goals..."
+                    placeholder="General reason for visit (e.g. Annual Checkup)..."
+                    className="w-full py-2.5 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Detailed Symptoms</label>
+                  <textarea
+                    rows={3}
+                    value={symptoms}
+                    onChange={(e) => setSymptoms(e.target.value)}
+                    placeholder="Describe any symptoms you are experiencing..."
                     className="w-full py-2.5 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
                   />
                 </div>

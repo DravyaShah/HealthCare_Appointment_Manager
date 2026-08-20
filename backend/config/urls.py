@@ -21,7 +21,13 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from django.http import HttpResponse
+
+def home_view(request):
+    return HttpResponse("<h1>Welcome to Health AI Backend</h1><p>The API is running successfully. Access the admin panel at <a href='/admin/'>/admin/</a>.</p>")
+
 urlpatterns = [
+    path('', home_view, name='home'),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('doctors/', include('doctors.urls')),

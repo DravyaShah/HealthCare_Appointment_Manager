@@ -233,6 +233,33 @@ const DoctorDashboard = () => {
                 <ArrowUpRight className="h-4 w-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
               </Link>
             </div>
+
+            {/* Leave Management Form */}
+            <div className="mt-4 pt-4 border-t border-slate-800">
+              <h4 className="text-xs font-bold text-white mb-2">Request Leave</h4>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const start = e.target.start.value;
+                  const end = e.target.end.value;
+                  try {
+                    await api.post('/doctors/leave/', { start_date: start, end_date: end, reason: 'Leave' });
+                    alert('Leave requested successfully!');
+                  } catch (err) {
+                    alert('Failed to request leave.');
+                  }
+                }}
+                className="space-y-2"
+              >
+                <div className="flex gap-2">
+                  <input type="date" name="start" required className="w-1/2 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white" />
+                  <input type="date" name="end" required className="w-1/2 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white" />
+                </div>
+                <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] py-1.5 rounded">
+                  Submit Leave
+                </button>
+              </form>
+            </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-slate-800/80 p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10">

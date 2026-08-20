@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
 from .models import DoctorProfile
 from .serializers import DoctorProfileSerializer
@@ -57,3 +58,16 @@ class DoctorProfileAPI(APIView):
 
 
     
+class DoctorLeaveAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        if request.user.role != 'doctor':
+            return Response({'error': 'Only doctors can add leaves'}, status=status.HTTP_403_FORBIDDEN)
+        from .models import DoctorLeave
+        DoctorLeave.objects.create(
+            doctor=request.user.doctor_profile,
+            start_date=request.data.get('start_date'),
+            end_date=request.data.get('end_date'),
+            reason=request.data.get('reason', '')
+        )
+        return Response({'message': 'Leave added'}, status=status.HTTP_201_CREATED)

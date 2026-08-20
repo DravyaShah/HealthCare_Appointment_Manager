@@ -86,3 +86,67 @@ def generate_news_insight(title, content):
             "why_this_matters": "Service unavailable.",
             "doctor_perspective": "Service unavailable."
         }
+
+PRE_VISIT_PROMPT = """
+Analyse these symptoms and return: urgency level (Low / Medium / High), chief complaint, and three suggested questions for the doctor.
+Provide your analysis STRICTLY as a valid JSON object. No markdown formatting, just the raw JSON:
+
+{{
+    "urgency_level": "Low/Medium/High",
+    "chief_complaint": "Brief description of the main issue",
+    "suggested_questions": ["Question 1", "Question 2", "Question 3"]
+}}
+
+Symptoms: {symptoms}
+"""
+
+def generate_pre_visit_summary(symptoms):
+    prompt = PRE_VISIT_PROMPT.format(symptoms=symptoms)
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        result = (response.text or "").strip()
+        result = result.replace("```json", "").replace("```", "").strip()
+        return json.loads(result)
+    except Exception as e:
+        print(f"Gemini API Error (Pre-visit): {e}")
+        return {
+            "urgency_level": "Medium",
+            "chief_complaint": symptoms[:50] + "..." if len(symptoms) > 50 else symptoms,
+            "suggested_questions": ["What is the likely cause of my symptoms?", "Are there any tests I need to take?", "What are my treatment options?"]
+        }
+
+POST_VISIT_PROMPT = """
+Convert these clinical notes into a patient-friendly summary with medication schedule and follow-up steps.
+Provide your analysis STRICTLY as a valid JSON object. No markdown formatting, just the raw JSON:
+
+{{
+    "patient_friendly_summary": "A simple explanation of the visit and diagnosis",
+    "medication_schedule": [
+        {{"name": "Medication 1", "frequency": "frequency details", "duration_days": 5}}
+    ],
+    "follow_up_steps": ["Step 1", "Step 2"]
+}}
+
+Clinical Notes: {notes}
+"""
+
+def generate_post_visit_summary(notes):
+    prompt = POST_VISIT_PROMPT.format(notes=notes)
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        result = (response.text or "").strip()
+        result = result.replace("```json", "").replace("```", "").strip()
+        return json.loads(result)
+    except Exception as e:
+        print(f"Gemini API Error (Post-visit): {e}")
+        return {
+            "patient_friendly_summary": "AI summary temporarily unavailable. Please refer to your doctor's original notes.",
+            "medication_schedule": [],
+            "follow_up_steps": ["Follow up as directed by your physician."]
+        }
