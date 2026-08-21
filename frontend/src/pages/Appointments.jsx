@@ -138,7 +138,11 @@ const Appointments = () => {
                   }`}>
                     {apt.status}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-500">ID #{apt.id}</span>
+                  <div className="flex items-center gap-2">
+                    {apt.calendar_sync_status === 'Synced' && <Calendar className="h-3.5 w-3.5 text-emerald-400" title="Google Calendar Synced" />}
+                    {apt.calendar_sync_status === 'Failed' && <AlertCircle className="h-3.5 w-3.5 text-rose-400" title="Google Calendar Sync Failed" />}
+                    <span className="text-[10px] font-mono text-slate-500">ID #{apt.id}</span>
+                  </div>
                 </div>
 
                 <h3 className="text-base font-bold font-display text-slate-100 mb-2">

@@ -172,12 +172,16 @@ const DoctorDashboard = () => {
                       <p className="text-[11px] text-slate-400 line-clamp-1">{apt.reason}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-xs font-mono font-medium text-slate-300">{apt.appointment_date}</p>
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase font-bold">
-                        {apt.status}
-                      </span>
+                    <div className="flex items-center gap-4">
+                    <div className="text-right flex items-center gap-2">
+                      {apt.calendar_sync_status === 'Synced' && <Calendar className="h-3 w-3 text-emerald-400" title="Google Calendar Synced" />}
+                      {apt.calendar_sync_status === 'Failed' && <AlertCircle className="h-3 w-3 text-rose-400" title="Google Calendar Sync Failed" />}
+                      <div>
+                        <p className="text-xs font-mono font-medium text-slate-300">{apt.appointment_date}</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase font-bold">
+                          {apt.status}
+                        </span>
+                      </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
                   </div>
@@ -240,10 +244,9 @@ const DoctorDashboard = () => {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  const start = e.target.start.value;
-                  const end = e.target.end.value;
+                  const leave_date = e.target.leave_date.value;
                   try {
-                    await api.post('/doctors/leave/', { start_date: start, end_date: end, reason: 'Leave' });
+                    await api.post('/doctors/leave/', { leave_date, reason: 'Leave' });
                     alert('Leave requested successfully!');
                   } catch (err) {
                     alert('Failed to request leave.');
@@ -251,9 +254,8 @@ const DoctorDashboard = () => {
                 }}
                 className="space-y-2"
               >
-                <div className="flex gap-2">
-                  <input type="date" name="start" required className="w-1/2 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white" />
-                  <input type="date" name="end" required className="w-1/2 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white" />
+                <div>
+                  <input type="date" name="leave_date" required className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-2 text-xs text-white" />
                 </div>
                 <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] py-1.5 rounded">
                   Submit Leave

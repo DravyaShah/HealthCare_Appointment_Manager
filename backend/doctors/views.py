@@ -63,11 +63,33 @@ class DoctorLeaveAPI(APIView):
     def post(self, request):
         if request.user.role != 'doctor':
             return Response({'error': 'Only doctors can add leaves'}, status=status.HTTP_403_FORBIDDEN)
+            
+        leave_date = request.data.get('leave_date')
+        if not leave_date:
+            return Response({'error': 'leave_date is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
         from .models import DoctorLeave
-        DoctorLeave.objects.create(
+        leave, created = DoctorLeave.objects.get_or_create(
             doctor=request.user.doctor_profile,
-            start_date=request.data.get('start_date'),
-            end_date=request.data.get('end_date'),
-            reason=request.data.get('reason', '')
+            leave_date=leave_date,
+            defaults={'reason': request.data.get('reason', '')}
         )
-        return Response({'message': 'Leave added'}, status=status.HTTP_201_CREATED)
+        
+        # Cancel overlapping appointments
+        from appointments.models import Appointment
+        from appointments.tasks import send_leave_cancellation_email_task, delete_calendar_task
+        
+        overlapping_appointments = Appointment.objects.filter(
+            doctor=request.user.doctor_profile,
+            appointment_date__date=leave_date,
+            status='scheduled'
+        )
+        
+        for appointment in overlapping_appointments:
+            appointment.status = 'cancelled'
+            appointment.save()
+            # Enqueue notifications and calendar deletion
+            send_leave_cancellation_email_task.delay(appointment.id)
+            delete_calendar_task.delay(appointment.id)
+            
+        return Response({'message': 'Leave added and conflicting appointments cancelled.'}, status=status.HTTP_201_CREATED)

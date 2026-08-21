@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, Lock, Save, ShieldCheck } from 'lucide-react';
+import { User, Mail, Phone, Lock, Save, ShieldCheck, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import ErrorBanner from '../components/ErrorBanner';
-
 const Profile = () => {
   const { user, updateUser } = useAuth();
 
@@ -18,6 +17,48 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(null);
+
+  useEffect(() => {
+    const fetchCalendarStatus = async () => {
+      try {
+        const res = await api.get('/api/calendar/status/');
+        setCalendarConnected(res.data.connected);
+      } catch (err) {
+        console.error("Failed to fetch calendar status", err);
+      }
+    };
+    fetchCalendarStatus();
+    
+    // Check url for success param
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('calendar') === 'success') {
+      setSuccess('Google Calendar connected successfully!');
+      // Remove query param
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const handleConnectCalendar = async () => {
+    try {
+      const res = await api.get('/api/calendar/google/auth/');
+      if (res.data.auth_url) {
+        window.location.href = res.data.auth_url;
+      }
+    } catch (err) {
+      setError('Failed to initiate Google Calendar connection.');
+    }
+  };
+
+  const handleDisconnectCalendar = async () => {
+    try {
+      await api.post('/api/calendar/disconnect/');
+      setCalendarConnected(false);
+      setSuccess('Google Calendar disconnected successfully.');
+    } catch (err) {
+      setError('Failed to disconnect Google Calendar.');
+    }
+  };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -167,6 +208,51 @@ const Profile = () => {
             <Lock className="h-4 w-4" /> Update Security Password
           </button>
         </form>
+      </motion.div>
+
+      {/* Google Calendar Integration */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-800 p-6 sm:p-8 shadow-xl space-y-6"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white font-display flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-400" />
+              Google Calendar Integration
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Sync your appointments automatically with your Google Calendar.
+            </p>
+          </div>
+          
+          {calendarConnected !== null && (
+            <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${calendarConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+              {calendarConnected ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+              {calendarConnected ? 'Connected' : 'Not Connected'}
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2">
+          {calendarConnected ? (
+            <button
+              onClick={handleDisconnectCalendar}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 font-bold text-xs transition-colors"
+            >
+              Disconnect Google Calendar
+            </button>
+          ) : (
+            <button
+              onClick={handleConnectCalendar}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 transition-all"
+            >
+              Connect Google Calendar
+            </button>
+          )}
+        </div>
       </motion.div>
     </div>
   );

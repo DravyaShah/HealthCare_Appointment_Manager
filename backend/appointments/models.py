@@ -25,6 +25,10 @@ class Appointment(models.Model):
     post_visit_notes = models.TextField(blank=True)
     post_visit_summary = models.TextField(blank=True)
     google_event_id = models.CharField(max_length=255, blank=True)
+    calendar_sync_status = models.CharField(max_length=20, default='Pending') # Pending, Synced, Failed
+    calendar_sync_error = models.TextField(blank=True)
+    calendar_retry_count = models.PositiveIntegerField(default=0)
+    email_notification_status = models.CharField(max_length=20, default='Pending') # Pending, Sent, Failed
 
     created_at = models.DateTimeField(auto_now_add=True)
 

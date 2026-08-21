@@ -100,8 +100,7 @@ class AppointmentAPI(APIView):
             # Check if doctor is on leave
             leave_conflict = DoctorLeave.objects.filter(
                 doctor=doctor,
-                start_date__lte=appointment_date.date(),
-                end_date__gte=appointment_date.date()
+                leave_date=appointment_date.date()
             ).exists()
             if leave_conflict:
                 return Response({"error": "Doctor is on leave on this date."}, status=status.HTTP_400_BAD_REQUEST)
@@ -135,15 +134,9 @@ class AppointmentAPI(APIView):
                 pre_visit_summary=pre_visit_summary
             )
 
-            from .tasks import sync_calendar_task
-            sync_calendar_task.delay(appointment.id, f"Appointment with {appointment.patient.user.get_full_name()}", symptoms)
-
-            from .services.email_service import send_booking_confirmation
-            send_booking_confirmation(
-                request.user.email,
-                doctor.user.get_full_name(),
-                appointment.appointment_date
-            )
+            from .tasks import sync_calendar_task, send_booking_email_task
+            sync_calendar_task.delay(appointment.id, f"Appointment with Dr. {doctor.user.get_full_name() or doctor.user.username}", symptoms)
+            send_booking_email_task.delay(appointment.id)
 
             return Response(
                 {"message": "Appointment created successfully", "data": serializer.data},
@@ -194,6 +187,8 @@ class AppointmentAPI(APIView):
                 {"error": "Only doctors can update appointment status."},
                 status=status.HTTP_403_FORBIDDEN
             )
+            
+        old_date = appointment.appointment_date
 
         serializer = AppointmentSerializer(
             appointment,
@@ -212,6 +207,11 @@ class AppointmentAPI(APIView):
                 serializer.save(post_visit_summary=post_visit_summary)
             else:
                 serializer.save()
+
+            if 'appointment_date' in request.data:
+                from .tasks import update_calendar_task, send_reschedule_email_task
+                update_calendar_task.delay(appointment.id, f"Appointment with Dr. {appointment.doctor.user.get_full_name() or appointment.doctor.user.username}", appointment.symptoms)
+                send_reschedule_email_task.delay(appointment.id, old_date)
 
             return Response(
                 {
@@ -255,6 +255,10 @@ class AppointmentAPI(APIView):
 
         appointment.status = 'cancelled'
         appointment.save()
+
+        from .tasks import delete_calendar_task, send_cancellation_email_task
+        delete_calendar_task.delay(appointment.id)
+        send_cancellation_email_task.delay(appointment.id, request.user.role)
 
         return Response(
             {

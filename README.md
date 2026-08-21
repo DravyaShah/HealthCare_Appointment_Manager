@@ -95,7 +95,19 @@ npm install
 npm run dev
 ```
 
-### 3. AI Model Setup
+### 3. Background Tasks & Integration (Celery, Email, Google Calendar)
+To enable email notifications and Google Calendar sync:
+
+1. **Redis Server:** Ensure Redis is installed and running on `localhost:6379`.
+2. **Environment Variables:** Update your `backend/.env` file with SMTP credentials and Google OAuth credentials (refer to `backend/.env.example`).
+3. **Run Celery Worker:** Open a new terminal and run:
+```bash
+cd AI_Health/backend
+source venv/bin/activate
+celery -A config worker -l info --pool=solo
+```
+
+### 4. AI Model Setup
 Ensure the Ollama service is running, then pull the required inference model:
 ```bash
 ollama pull phi3
