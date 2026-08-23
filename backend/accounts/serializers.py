@@ -21,8 +21,10 @@ class AccountSerializer(serializers.ModelSerializer):
             'password': {'write_only': True}
         }
 
+    from django.db import transaction
+    
+    @transaction.atomic
     def create(self, validated_data):
-
         user = User.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],

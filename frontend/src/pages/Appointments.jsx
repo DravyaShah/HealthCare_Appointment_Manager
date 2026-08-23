@@ -56,10 +56,10 @@ const Appointments = () => {
     setSubmitting(true);
     setError(null);
     try {
+      const localDateTime = new Date(`${date}T${time}`);
       await api.post('/appointments/appointments/', {
         doctor: selectedDoctor,
-        appointment_date: date,
-        appointment_time: time,
+        appointment_date: localDateTime.toISOString(),
         reason,
         symptoms,
       });

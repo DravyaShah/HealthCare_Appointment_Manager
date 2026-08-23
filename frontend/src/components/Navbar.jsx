@@ -149,7 +149,7 @@ const Navbar = ({ onMenuClick }) => {
 
               <div className="py-1">
                 <button
-                  onClick={() => setShowDropdown(false)}
+                  onClick={() => { setShowDropdown(false); navigate('/profile'); }}
                   className="w-full text-left px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-3 transition-colors"
                 >
                   <UserIcon className="h-4 w-4 text-slate-400" />

@@ -73,6 +73,10 @@ def send_cancellation_email_task(self, appointment_id, cancelled_by):
 @shared_task(bind=True, max_retries=3)
 def send_reschedule_email_task(self, appointment_id, old_date):
     try:
+        if isinstance(old_date, str):
+            from django.utils.dateparse import parse_datetime
+            old_date = parse_datetime(old_date)
+            
         appointment = Appointment.objects.select_related('patient__user', 'doctor__user').get(id=appointment_id)
         send_reschedule_notice(
             appointment.patient.user.email,

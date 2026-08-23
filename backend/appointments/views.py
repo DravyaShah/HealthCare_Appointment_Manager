@@ -5,6 +5,8 @@ from rest_framework import status
 from .models import Appointment, DoctorProfile, PatientProfile
 from .serializers import AppointmentSerializer
 from rest_framework.permissions import IsAuthenticated
+import datetime
+from django.utils import timezone
 
 
 class AppointmentAPI(APIView):
@@ -95,12 +97,12 @@ class AppointmentAPI(APIView):
             appointment_date = serializer.validated_data.get('appointment_date')
             
             from doctors.models import DoctorLeave
-            import datetime
+            from django.utils import timezone
             
             # Check if doctor is on leave
             leave_conflict = DoctorLeave.objects.filter(
                 doctor=doctor,
-                leave_date=appointment_date.date()
+                leave_date=timezone.localtime(appointment_date).date()
             ).exists()
             if leave_conflict:
                 return Response({"error": "Doctor is on leave on this date."}, status=status.HTTP_400_BAD_REQUEST)
@@ -197,6 +199,36 @@ class AppointmentAPI(APIView):
         )
 
         if serializer.is_valid():
+            if 'appointment_date' in request.data:
+                new_date = serializer.validated_data.get('appointment_date')
+                from doctors.models import DoctorLeave
+                import datetime
+                from django.utils import timezone
+                # Check if doctor is on leave
+                leave_conflict = DoctorLeave.objects.filter(
+                    doctor=appointment.doctor,
+                    leave_date=timezone.localtime(new_date).date()
+                ).exists()
+                if leave_conflict:
+                    return Response(
+                        {"error": "Doctor is on leave on this date."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                # Check for double booking
+                duration = appointment.doctor.slot_duration_minutes
+                end_time = new_date + datetime.timedelta(minutes=duration)
+                overlap = Appointment.objects.filter(
+                    doctor=appointment.doctor,
+                    status='scheduled',
+                    appointment_date__lt=end_time,
+                    appointment_date__gt=new_date - datetime.timedelta(minutes=duration)
+                ).exclude(pk=appointment.pk).exists()
+                if overlap:
+                    return Response(
+                        {"error": "This slot is already booked. Please choose another time."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
             post_visit_notes = request.data.get('post_visit_notes')
             post_visit_summary = ''
 

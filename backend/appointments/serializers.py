@@ -7,11 +7,25 @@ class AppointmentSerializer(serializers.ModelSerializer):
     doctor_name = serializers.SerializerMethodField()
     doctor_specialization = serializers.CharField(source='doctor.specialization', read_only=True)
     patient_name = serializers.SerializerMethodField()
+    appointment_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'doctor', 'patient']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Override appointment_date to be just YYYY-MM-DD for the frontend
+        if instance.appointment_date:
+            representation['appointment_date'] = timezone.localtime(instance.appointment_date).strftime('%Y-%m-%d')
+        return representation
+
+    def get_appointment_time(self, obj):
+        if obj.appointment_date:
+            # Return time in HH:MM format in local timezone
+            return timezone.localtime(obj.appointment_date).strftime('%H:%M')
+        return None
 
     def get_doctor_name(self, obj):
         user = obj.doctor.user

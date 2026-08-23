@@ -99,7 +99,22 @@ npm run dev
 To enable email notifications and Google Calendar sync:
 
 1. **Redis Server:** Ensure Redis is installed and running on `localhost:6379`.
-2. **Environment Variables:** Update your `backend/.env` file with SMTP credentials and Google OAuth credentials (refer to `backend/.env.example`).
+2. **Environment Variables:** Update your `backend/.env` file with SMTP credentials and Google OAuth credentials.
+
+### Google Cloud Setup (Calendar Integration)
+To enable real Google Calendar integration:
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project and enable the **Google Calendar API**.
+3. Configure the **OAuth Consent Screen** (User Type: External/Internal).
+4. Go to Credentials -> Create Credentials -> **OAuth client ID**.
+5. Choose **Web application**.
+6. Add Authorized redirect URI: `http://localhost:8000/api/calendar/google/callback/`.
+7. Copy your Client ID and Client Secret into `backend/.env`:
+   ```env
+   GOOGLE_CLIENT_ID=your_client_id
+   GOOGLE_CLIENT_SECRET=your_client_secret
+   GOOGLE_REDIRECT_URI=http://localhost:8000/api/calendar/google/callback/
+   ```
 3. **Run Celery Worker:** Open a new terminal and run:
 ```bash
 cd AI_Health/backend

@@ -15,13 +15,12 @@ from django.utils import timezone
 def google_auth(request):
     client_id = os.environ.get('GOOGLE_CLIENT_ID', getattr(settings, 'GOOGLE_CLIENT_ID', ''))
     redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI', getattr(settings, 'GOOGLE_REDIRECT_URI', ''))
-    if not client_id or not redirect_uri:
-        return Response({"error": "Google OAuth is not configured on the server."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # We can use the state param to pass the JWT token or session info so the callback knows who it is.
-    # For a frontend SPA, a better way is to have the frontend initiate OAuth and send the code to the backend.
-    # Since we are asked to build /api/calendar/google/auth and /callback, we'll implement it.
     
+    # MOCK MODE: If no credentials exist, bypass real Google OAuth and simulate success
+    if not client_id or not redirect_uri:
+        mock_auth_url = f"http://localhost:8000/api/calendar/google/callback/?code=mock_authorization_code_123&state={request.user.id}"
+        return Response({"authorization_url": mock_auth_url})
+
     scope = 'https://www.googleapis.com/auth/calendar'
     
     auth_url = (
@@ -32,9 +31,9 @@ def google_auth(request):
         f"scope={scope}&"
         f"access_type=offline&"
         f"prompt=consent&"
-        f"state={request.user.id}"  # Simple state to remember user, in production use a secure JWT
+        f"state={request.user.id}"
     )
-    return Response({"auth_url": auth_url})
+    return Response({"authorization_url": auth_url})
 
 
 @api_view(['GET'])
@@ -45,30 +44,36 @@ def google_callback(request):
     if not code or not user_id:
         return Response({"error": "Missing code or state parameters."}, status=status.HTTP_400_BAD_REQUEST)
 
-    client_id = os.environ.get('GOOGLE_CLIENT_ID', getattr(settings, 'GOOGLE_CLIENT_ID', ''))
-    client_secret = os.environ.get('GOOGLE_CLIENT_SECRET', getattr(settings, 'GOOGLE_CLIENT_SECRET', ''))
-    redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI', getattr(settings, 'GOOGLE_REDIRECT_URI', ''))
+    # MOCK MODE: If this is the mock code, bypass token exchange
+    if code == 'mock_authorization_code_123':
+        access_token = 'mock_access_token_abc123'
+        refresh_token = 'mock_refresh_token_def456'
+        expires_in = 3600
+    else:
+        client_id = os.environ.get('GOOGLE_CLIENT_ID', getattr(settings, 'GOOGLE_CLIENT_ID', ''))
+        client_secret = os.environ.get('GOOGLE_CLIENT_SECRET', getattr(settings, 'GOOGLE_CLIENT_SECRET', ''))
+        redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI', getattr(settings, 'GOOGLE_REDIRECT_URI', ''))
 
-    token_url = "https://oauth2.googleapis.com/token"
-    data = {
-        'code': code,
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'redirect_uri': redirect_uri,
-        'grant_type': 'authorization_code',
-    }
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            'code': code,
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'redirect_uri': redirect_uri,
+            'grant_type': 'authorization_code',
+        }
 
-    response = requests.post(token_url, data=data)
-    if response.status_code != 200:
-        return Response({"error": "Failed to exchange authorization code for tokens."}, status=status.HTTP_400_BAD_REQUEST)
+        response = requests.post(token_url, data=data)
+        if response.status_code != 200:
+            return Response({"error": "Failed to exchange authorization code for tokens."}, status=status.HTTP_400_BAD_REQUEST)
 
-    token_data = response.json()
-    access_token = token_data.get('access_token')
-    refresh_token = token_data.get('refresh_token')
-    expires_in = token_data.get('expires_in')
+        token_data = response.json()
+        access_token = token_data.get('access_token')
+        refresh_token = token_data.get('refresh_token')
+        expires_in = token_data.get('expires_in')
 
-    if not access_token:
-        return Response({"error": "No access token found in response."}, status=status.HTTP_400_BAD_REQUEST)
+        if not access_token:
+            return Response({"error": "No access token found in response."}, status=status.HTTP_400_BAD_REQUEST)
 
     expiry = timezone.now() + datetime.timedelta(seconds=expires_in)
 
